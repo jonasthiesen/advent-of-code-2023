@@ -29,13 +29,32 @@ fn process(input: &str) -> u32 {
                 .map(|n| n.trim().parse::<u32>().expect("should be there"))
                 .collect();
 
-            let intersect = winning_numbers.intersection(&numbers);
+            let card = Card::new(winning_numbers, numbers);
 
-            return intersect.fold(0, |acc, _| if acc == 0 { return 1 } else { return acc * 2 });
+            card.score()
         })
         .sum();
 
     result
+}
+
+struct Card {
+    winning_numbers: HashSet<u32>,
+    numbers: HashSet<u32>,
+}
+
+impl Card {
+    fn new(winning_numbers: HashSet<u32>, numbers: HashSet<u32>) -> Card {
+        Card {
+            winning_numbers,
+            numbers,
+        }
+    }
+
+    fn score(&self) -> u32 {
+        let intersection = self.winning_numbers.intersection(&self.numbers);
+        intersection.fold(0, |acc, _| if acc == 0 { return 1 } else { return acc * 2 })
+    }
 }
 
 #[cfg(test)]

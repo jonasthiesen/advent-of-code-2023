@@ -38,12 +38,7 @@ fn process(input: &str) -> u32 {
                 .map(|n| n.trim().parse::<u32>().expect("should be there"))
                 .collect();
 
-            let intersect = winning_numbers.intersection(&numbers).count() as u32;
-
-            (
-                card_id,
-                Card::new(((card_id + 1)..(card_id + intersect + 1)).collect::<Vec<u32>>()),
-            )
+            (card_id, Card::new(winning_numbers, numbers))
         })
         .collect();
 
@@ -51,12 +46,20 @@ fn process(input: &str) -> u32 {
 }
 
 struct Card {
-    pointers: Vec<u32>,
+    winning_numbers: HashSet<u32>,
+    numbers: HashSet<u32>,
 }
 
 impl Card {
-    fn new(pointers: Vec<u32>) -> Card {
-        Card { pointers }
+    fn new(winning_numbers: HashSet<u32>, numbers: HashSet<u32>) -> Card {
+        Card {
+            winning_numbers,
+            numbers,
+        }
+    }
+
+    fn score(&self) -> u32 {
+        self.winning_numbers.intersection(&self.numbers).count() as u32
     }
 }
 
@@ -64,18 +67,16 @@ fn count_cards(lookup: BTreeMap<u32, Card>) -> u32 {
     let mut memo: HashMap<u32, u32> = HashMap::new();
 
     lookup.iter().rev().for_each(|(id, card)| {
-        let length = card.pointers.len() as u32;
+        let length = card.score();
 
-        let child_lengths: u32 = card
-            .pointers
-            .iter()
-            .map(|id| memo.get(id).unwrap_or(&0))
+        let child_lengths: u32 = ((id + 1)..(id + 1 + length))
+            .map(|id| memo.get(&id).unwrap_or(&0))
             .sum();
 
         memo.insert(*id, child_lengths + length);
     });
 
-    let sum: u32 = memo.iter().map(|(_, v)| v).sum();
+    let sum: u32 = memo.values().sum();
 
     // We need to add the initial scratch cards
     sum + memo.len() as u32
