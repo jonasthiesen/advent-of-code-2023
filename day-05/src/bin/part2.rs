@@ -18,30 +18,50 @@ fn main() {
 fn process(input: &str) -> u64 {
     let mut groups = input.split("\n\n");
 
-    let (_, seeds) = groups.next().map(parse_seeds).unwrap().unwrap();
+    let (_, seeds_raw) = groups.next().map(parse_seeds).unwrap().unwrap();
     let mappings = groups.map(parse_mapping).collect::<Vec<_>>();
 
-    let results = seeds.iter().map(|seed| {
-        let done = mappings.iter().fold(*seed, |acc, cur| {
-            if let Ok((_, vec)) = cur.as_ref() {
-                let result = vec.iter().fold(acc, |acc1, cur1| {
-                    if acc >= cur1.0 && acc < cur1.0 + cur1.2 {
-                        return cur1.1 + acc - cur1.0;
-                    } else {
-                        return acc1;
-                    }
-                });
+    let mut seeds: Vec<u64> = Vec::new();
 
-                result
-            } else {
-                panic!("Fuck");
+    seeds_raw
+        .chunks(2)
+        .filter_map(|chunk| match chunk {
+            [a, b] => Some((*a, *b)),
+            _ => None,
+        })
+        .for_each(|(seed_start, seed_range)| {
+            for seed in seed_start..seed_start + seed_range {
+                seeds.push(seed);
             }
         });
 
-        done
+    let mut best_result: Option<u64> = None;
+
+    seeds.iter().enumerate().for_each(|(index, seed)| {
+        if index % 10_000_000 == 0 {
+            println!("{}", (index as f64) / (seeds.len() as f64) * 100.0);
+        }
+
+        let mut value = *seed;
+        for mapping in mappings.iter() {
+            if let Ok((_, vec)) = mapping {
+                for range in vec.iter() {
+                    if value >= range.0 && value < range.0 + range.2 {
+                        value = range.1 + value - range.0;
+                        break;
+                    }
+                }
+            } else {
+                panic!("Fuck")
+            }
+        }
+
+        if best_result.is_none() || value < best_result.unwrap() {
+            best_result = Some(value);
+        }
     });
 
-    results.min().unwrap()
+    best_result.unwrap()
 }
 
 fn parse_seeds(input: &str) -> IResult<&str, Vec<u64>> {
@@ -137,6 +157,6 @@ humidity-to-location map:
 60 56 37
 56 93 4";
 
-        assert_eq!(35, process(input));
+        assert_eq!(46, process(input));
     }
 }
